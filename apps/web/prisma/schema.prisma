@@ -1,5 +1,6 @@
 generator client {
-  provider = "prisma-client-js"
+  provider = "prisma-client"
+  output   = "../generated/prisma"
 }
 
 datasource db {
@@ -59,4 +60,6 @@ model Message {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([conversationId, createdAt])
 }
