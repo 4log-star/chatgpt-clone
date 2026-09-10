@@ -1,43 +1,45 @@
+import { createHash, randomBytes } from "node:crypto";
+import { cookies } from "next/headers";
 import { prisma } from "@/lib/db";
-import { error } from "console";
-import { z } from "zod";
 import argon2 from "argon2";
-import { createHash, randomBytes } from "crypto";
+import { z } from "zod";
 
-const singupSchema = z.object({
+const signupSchema = z.object({
   email: z.email(),
   password: z.string().min(8),
 });
 
-const SESSION_DURATION_MS = 1000 * 60 * 60 * 24 * 7; //7 days
+const SESSION_DURATION_MS = 1000 * 60 * 60 * 24 * 7; // 7 days
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const result = singupSchema.safeParse(body);
+
+    const result = signupSchema.safeParse(body);
+
     if (!result.success) {
       return Response.json(
         {
           error: "Invalid signup data",
         },
-        {
-          status: 400,
-        },
+        { status: 400 }
       );
     }
 
     const { email, password } = result.data;
 
-    const existingUser = await prisma.user.findUnique({ where: { email } });
+    const existingUser = await prisma.user.findUnique({
+      where: {
+        email,
+      },
+    });
 
     if (existingUser) {
       return Response.json(
         {
           error: "Unable to create account",
         },
-        {
-          status: 409,
-        },
+        { status: 409 }
       );
     }
 
@@ -55,9 +57,13 @@ export async function POST(request: Request) {
       },
     });
 
+    // Generate the actual secret that will be sent to the browser.
     const sessionToken = randomBytes(32).toString("hex");
 
-    const tokenHash = createHash("sha256").update(sessionToken).digest("hex");
+    // Store only the hash of that secret in the database.
+    const tokenHash = createHash("sha256")
+      .update(sessionToken)
+      .digest("hex");
 
     const expiresAt = new Date(Date.now() + SESSION_DURATION_MS);
 
@@ -68,6 +74,9 @@ export async function POST(request: Request) {
         expiresAt,
       },
     });
+
+    // The raw token goes to the browser, not the database.
+    const cookieStore = await cookies();
 
     cookieStore.set({
       name: "session",
@@ -83,16 +92,14 @@ export async function POST(request: Request) {
       {
         user,
       },
-      { status: 201 },
+      { status: 201 }
     );
-  } catch (error) {
+  } catch {
     return Response.json(
       {
         error: "Something went wrong",
       },
-      {
-        status: 500,
-      },
+      { status: 500 }
     );
   }
 }
