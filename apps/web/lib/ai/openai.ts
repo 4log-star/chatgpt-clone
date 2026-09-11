@@ -7,4 +7,7 @@ if(!apiKey){
     throw new Error("OPENAI_API_KEY is not set")
 }
 
-export const openai = new OpenAI({apiKey})
+export const openai = new OpenAI({
+    baseURL : "http://localhost:11434/v1",
+    apiKey : "ollama"
+})

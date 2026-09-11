@@ -1,31 +1,38 @@
-import { getConversationMessages, streamChatResponse } from "@/lib/ai/chat";
 import { getCurrentUser } from "@/lib/auth";
+import {
+  getConversationMessages,
+  streamChatResponse,
+} from "@/lib/ai/chat";
+import { encodeSSE } from "@/lib/ai/sse";
 import { prisma } from "@/lib/db";
-import z from "zod";
+import { z } from "zod";
 
 const createMessageSchema = z.object({
   content: z.string().trim().min(1).max(20_000),
 });
 
 type RouteContext = {
-  params: Promise<{ conversationId: string }>;
+  params: Promise<{
+    conversationId: string;
+  }>;
 };
 
-export async function POST(request: Request, context: RouteContext) {
+export async function POST(
+  request: Request,
+  context: RouteContext
+) {
   const user = await getCurrentUser();
+
   if (!user) {
     return Response.json(
-      {
-        error: "Unauthorized",
-      },
-      {
-        status: 401,
-      },
+      { error: "Unauthorized" },
+      { status: 401 }
     );
   }
 
   try {
     const { conversationId } = await context.params;
+
     const conversation = await prisma.conversation.findFirst({
       where: {
         id: conversationId,
@@ -39,21 +46,18 @@ export async function POST(request: Request, context: RouteContext) {
     if (!conversation) {
       return Response.json(
         { error: "Conversation not found" },
-        { status: 404 },
+        { status: 404 }
       );
     }
 
     const body = await request.json();
+
     const result = createMessageSchema.safeParse(body);
 
     if (!result.success) {
       return Response.json(
-        {
-          error: "Invalid message data",
-        },
-        {
-          status: 400,
-        },
+        { error: "Invalid message data" },
+        { status: 400 }
       );
     }
 
@@ -65,9 +69,11 @@ export async function POST(request: Request, context: RouteContext) {
       },
     });
 
-    const messages = await getConversationMessages(conversation.id);
+    const messages = await getConversationMessages(
+      conversation.id
+    );
+
     const aiStream = streamChatResponse(messages);
-    const encoder = new TextEncoder();
 
     const stream = new ReadableStream({
       async start(controller) {
@@ -76,8 +82,14 @@ export async function POST(request: Request, context: RouteContext) {
         try {
           for await (const chunk of aiStream) {
             assistantContent += chunk;
-            controller.enqueue(encoder.encode(chunk));
+
+            controller.enqueue(
+              encodeSSE("chunk", {
+                text: chunk,
+              })
+            );
           }
+
           if (assistantContent.length > 0) {
             await prisma.message.create({
               data: {
@@ -88,27 +100,41 @@ export async function POST(request: Request, context: RouteContext) {
             });
           }
 
+          controller.enqueue(
+            encodeSSE("done", {})
+          );
+
           controller.close();
         } catch (error) {
           console.error("AI stream failed:", error);
 
-          controller.error(error);
+          controller.enqueue(
+            encodeSSE("error", {
+              message: "Error generating response",
+            })
+          );
+
+          controller.close();
         }
       },
     });
 
     return new Response(stream, {
       headers: {
-        "Content-Type": "text/plain; charset=utf-8",
-        "Cache-Control": "no-cache",
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache, no-transform",
+        Connection: "keep-alive",
       },
     });
   } catch (error) {
     console.error(
       "POST /api/conversations/[conversationId]/messages failed:",
-      error,
+      error
     );
 
-    return Response.json({ error: "Something went wrong" }, { status: 500 });
+    return Response.json(
+      { error: "Something went wrong" },
+      { status: 500 }
+    );
   }
 }

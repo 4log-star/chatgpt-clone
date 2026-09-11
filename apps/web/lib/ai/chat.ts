@@ -1,8 +1,8 @@
 import { prisma } from "@/lib/db";
-import { FakeAIProvider } from "./fake";
+import { OllamaProvider } from "./ollama-provider";
 import type { ChatMessage } from "./provider";
 
-const provider = new FakeAIProvider();
+const provider = new OllamaProvider();
 
 export async function getConversationMessages(
   conversationId: string
