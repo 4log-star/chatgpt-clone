@@ -1,27 +1,31 @@
 "use client";
 
-import { SubmitEvent, useState } from "react";
+import type { SubmitEvent } from "react";
+import { useState } from "react";
 
-export default function ChatComposer() {
+type ChatComposerProps = {
+    onSend: (message: string) => void | Promise<void>;
+    disabled?: boolean;
+};
+
+export default function ChatComposer({
+    onSend,
+    disabled = false,
+}: ChatComposerProps) {
     const [message, setMessage] = useState("");
 
     async function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
         event.preventDefault();
-        if (!message.trim()) return;
 
-        const response = await fetch("/api/chat", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                message
-            })
-        })
+        const content = message.trim();
 
-        const data = await response.json();
-        console.log("Server response : ", data);
+        if (!content || disabled) {
+            return;
+        }
+
         setMessage("");
+
+        await onSend(content);
     }
 
     return (
@@ -33,13 +37,18 @@ export default function ChatComposer() {
                 <input
                     value={message}
                     onChange={(event) => setMessage(event.target.value)}
-                    placeholder="Ask anything..."
-                    className="flex-1 bg-transparent outline-none"
+                    placeholder={
+                        disabled
+                            ? "Generating response..."
+                            : "Ask anything..."
+                    }
+                    disabled={disabled}
+                    className="flex-1 bg-transparent outline-none disabled:opacity-50"
                 />
 
                 <button
                     type="submit"
-                    disabled={!message.trim()}
+                    disabled={!message.trim() || disabled}
                     className="rounded-full bg-black px-4 py-2 text-white disabled:opacity-40"
                 >
                     ↑

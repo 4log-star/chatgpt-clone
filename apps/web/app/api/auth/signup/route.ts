@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { prisma } from "@/lib/db";
 import argon2 from "argon2";
 import { z } from "zod";
+import { createSession } from "@/lib/auth-session";
 
 const signupSchema = z.object({
   email: z.email(),
@@ -22,7 +23,7 @@ export async function POST(request: Request) {
         {
           error: "Invalid signup data",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -39,7 +40,7 @@ export async function POST(request: Request) {
         {
           error: "Unable to create account",
         },
-        { status: 409 }
+        { status: 409 },
       );
     }
 
@@ -58,22 +59,7 @@ export async function POST(request: Request) {
     });
 
     // Generate the actual secret that will be sent to the browser.
-    const sessionToken = randomBytes(32).toString("hex");
-
-    // Store only the hash of that secret in the database.
-    const tokenHash = createHash("sha256")
-      .update(sessionToken)
-      .digest("hex");
-
-    const expiresAt = new Date(Date.now() + SESSION_DURATION_MS);
-
-    await prisma.session.create({
-      data: {
-        tokenHash,
-        userId: user.id,
-        expiresAt,
-      },
-    });
+    const { sessionToken, expiresAt } = await createSession(user.id);
 
     // The raw token goes to the browser, not the database.
     const cookieStore = await cookies();
@@ -92,14 +78,14 @@ export async function POST(request: Request) {
       {
         user,
       },
-      { status: 201 }
+      { status: 201 },
     );
   } catch {
     return Response.json(
       {
         error: "Something went wrong",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

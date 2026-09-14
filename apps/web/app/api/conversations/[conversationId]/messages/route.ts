@@ -3,6 +3,7 @@ import {
   getConversationMessages,
   streamChatResponse,
 } from "@/lib/ai/chat";
+import { generateConversationTitle } from "@/lib/ai/title";
 import { encodeSSE } from "@/lib/ai/sse";
 import { prisma } from "@/lib/db";
 import { z } from "zod";
@@ -40,6 +41,7 @@ export async function POST(
       },
       select: {
         id: true,
+        title: true,
       },
     });
 
@@ -61,6 +63,7 @@ export async function POST(
       );
     }
 
+    // Save the user's message first.
     await prisma.message.create({
       data: {
         conversationId: conversation.id,
@@ -69,10 +72,12 @@ export async function POST(
       },
     });
 
+    // Load the updated conversation history.
     const messages = await getConversationMessages(
       conversation.id
     );
 
+    // Start the AI stream.
     const aiStream = streamChatResponse(messages);
 
     const stream = new ReadableStream({
@@ -80,6 +85,7 @@ export async function POST(
         let assistantContent = "";
 
         try {
+          // Stream assistant response to the browser.
           for await (const chunk of aiStream) {
             assistantContent += chunk;
 
@@ -90,6 +96,7 @@ export async function POST(
             );
           }
 
+          // Persist the complete assistant response.
           if (assistantContent.length > 0) {
             await prisma.message.create({
               data: {
@@ -100,6 +107,33 @@ export async function POST(
             });
           }
 
+          // Generate a title only for a conversation
+          // that doesn't already have one.
+          if (!conversation.title && assistantContent.length > 0) {
+            try {
+              const title = await generateConversationTitle(
+                result.data.content
+              );
+
+              await prisma.conversation.update({
+                where: {
+                  id: conversation.id,
+                },
+                data: {
+                  title,
+                },
+              });
+            } catch (error) {
+              // Title generation should not make an
+              // otherwise successful chat response fail.
+              console.error(
+                "Failed to generate conversation title:",
+                error
+              );
+            }
+          }
+
+          // Tell the browser generation is complete.
           controller.enqueue(
             encodeSSE("done", {})
           );
