@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 
 import ChatComposer from "@/components/chat/ChatComposer";
@@ -21,6 +21,10 @@ export default function ChatPage() {
     const params = useParams<{ conversationId: string }>();
     const conversationId = params.conversationId;
     const router = useRouter()
+    const abortControllerRef =
+        useRef<AbortController | null>(null);
+
+
 
     const [messages, setMessages] = useState<Message[]>([]);
     const [isStreaming, setIsStreaming] = useState(false);
@@ -72,6 +76,9 @@ export default function ChatPage() {
 
         const temporaryUserId = crypto.randomUUID()
         const temporaryAssistantId = crypto.randomUUID();
+        const controller = new AbortController();
+
+        abortControllerRef.current = controller;
 
         const userMessage: Message = {
             id: temporaryUserId,
@@ -99,6 +106,7 @@ export default function ChatPage() {
             await streamChatMessage(
                 conversationId,
                 content,
+                controller.signal,
                 {
                     onChunk(text) {
                         setMessages((current) =>
@@ -115,6 +123,7 @@ export default function ChatPage() {
                     },
 
                     onDone() {
+                        abortControllerRef.current = null;
                         setIsStreaming(false);
                         window.dispatchEvent(
                             new Event("conversations-updated")
@@ -128,7 +137,15 @@ export default function ChatPage() {
                 }
             );
         } catch (error) {
+            abortControllerRef.current = null;
             setIsStreaming(false);
+
+            if (
+                error instanceof DOMException &&
+                error.name === "AbortError"
+            ) {
+                return;
+            }
 
             setError(
                 error instanceof Error
@@ -136,6 +153,19 @@ export default function ChatPage() {
                     : "Failed to generate response"
             );
         }
+    }
+
+    function handleStopGenerating() {
+        abortControllerRef.current?.abort();
+        setMessages((current) =>
+            current.filter(
+                (message) =>
+                    !(
+                        message.role === "ASSISTANT" &&
+                        message.content === ""
+                    )
+            )
+        );
     }
 
     return (
@@ -153,6 +183,7 @@ export default function ChatPage() {
 
             <ChatComposer
                 onSend={handleSendMessage}
+                onStop={handleStopGenerating}
                 disabled={isStreaming}
             />
         </div>

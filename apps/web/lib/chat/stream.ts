@@ -18,9 +18,10 @@ type StreamCallbacks = {
 };
 
 export async function streamChatMessage(
-  conversationId: string,
-  content: string,
-  callbacks: StreamCallbacks
+    conversationId: string,
+    content: string,
+    signal: AbortSignal,
+    callbacks: StreamCallbacks
 ) {
   const response = await fetch(
     `/api/conversations/${conversationId}/messages`,
@@ -32,6 +33,7 @@ export async function streamChatMessage(
       body: JSON.stringify({
         content,
       }),
+      signal
     }
   );
 

@@ -5,11 +5,13 @@ import { useState } from "react";
 
 type ChatComposerProps = {
     onSend: (message: string) => void | Promise<void>;
+    onStop: () => void;
     disabled?: boolean;
 };
 
 export default function ChatComposer({
     onSend,
+    onStop,
     disabled = false,
 }: ChatComposerProps) {
     const [message, setMessage] = useState("");
@@ -46,13 +48,23 @@ export default function ChatComposer({
                     className="flex-1 bg-transparent outline-none disabled:opacity-50"
                 />
 
-                <button
-                    type="submit"
-                    disabled={!message.trim() || disabled}
-                    className="rounded-full bg-black px-4 py-2 text-white disabled:opacity-40"
-                >
-                    ↑
-                </button>
+                {disabled ? (
+                    <button
+                        type="button"
+                        onClick={onStop}
+                        className="rounded-full bg-black px-4 py-2 text-white cursor-pointer"
+                    >
+                        ■
+                    </button>
+                ) : (
+                    <button
+                        type="submit"
+                        disabled={!message.trim()}
+                        className="rounded-full bg-black px-4 py-2 text-white disabled:opacity-40 cursor-pointer"
+                    >
+                        ↑
+                    </button>
+                )}
             </div>
         </form>
     );

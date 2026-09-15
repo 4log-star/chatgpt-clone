@@ -4,5 +4,5 @@ export type ChatMessage = {
 };
 
 export interface AIProvider {
- streamResponse(messages : ChatMessage[]) : AsyncGenerator<string>
+ streamResponse(messages : ChatMessage[], signal ?: AbortSignal) : AsyncGenerator<string>
 }

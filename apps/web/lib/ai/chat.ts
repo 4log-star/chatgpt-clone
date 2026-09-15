@@ -26,6 +26,6 @@ export async function getConversationMessages(
   }));
 }
 
-export function streamChatResponse(messages: ChatMessage[]) {
-  return provider.streamResponse(messages);
+export function streamChatResponse(messages: ChatMessage[], signal ?: AbortSignal) {
+  return provider.streamResponse(messages, signal);
 }

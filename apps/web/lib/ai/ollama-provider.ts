@@ -9,7 +9,7 @@ const ollama = new OpenAI({
 })
 
 export class OllamaProvider implements AIProvider{
-    async *streamResponse(messages : ChatMessage[]){
+    async *streamResponse(messages : ChatMessage[], signal  ?: AbortSignal){
         const stream = await ollama.chat.completions.create({
             model : "gemma3:4b",
             messages : messages.map((message)=>(
@@ -19,7 +19,11 @@ export class OllamaProvider implements AIProvider{
                 }
             )),
             stream : true
-        })
+        },
+        {
+            signal
+        }
+        )
 
         for await(const chunk of stream){
             const text = chunk.choices[0].delta?.content
