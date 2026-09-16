@@ -13,16 +13,21 @@ enum MessageRole {
   ASSISTANT
 }
 
-model User {
-  id           String @id @default(uuid())
-  email        String @unique
-  passwordHash String
+enum GenerationStatus {
+  STREAMING
+  COMPLETED
+  STOPPED
+  ERROR
+}
 
+model User {
+  id            String         @id @default(uuid())
+  email         String         @unique
+  passwordHash  String
   conversations Conversation[]
   sessions      Session[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
 }
 
 model Session {
@@ -30,37 +35,52 @@ model Session {
   tokenHash String   @unique
   userId    String
   expiresAt DateTime
-
-  user User @relation(fields: [userId], references: [id])
-
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
 }
 
 model Conversation {
-  id     String  @id @default(uuid())
-  userId String
-  title  String?
+  id        String   @id @default(uuid())
+  userId    String
+  title     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   user     User      @relation(fields: [userId], references: [id])
   messages Message[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
 
   @@index([userId, createdAt])
 }
 
 model Message {
-  id             String      @id @default(uuid())
+  id             String         @id @default(uuid())
   conversationId String
   role           MessageRole
   content        String
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
 
-  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  conversation Conversation @relation(fields: [conversationId],references: [id],onDelete: Cascade)
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  generationsFromUser Generation[] @relation("UserMessageGenerations")
+  generation          Generation?  @relation("AssistantGeneration")
 
   @@index([conversationId, createdAt])
+}
+
+model Generation {
+  id              String           @id @default(uuid())
+  userMessageId   String
+  assistantMessageId String?       @unique
+  status          GenerationStatus
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  userMessage Message @relation("UserMessageGenerations",fields: [userMessageId],references: [id],onDelete: Cascade)
+
+  assistantMessage Message? @relation("AssistantGeneration",fields: [assistantMessageId],references: [id],onDelete: SetNull)
+
+  @@index([userMessageId, createdAt])
 }
