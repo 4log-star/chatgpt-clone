@@ -10,8 +10,19 @@
 */
 
 export const MessageRole = {
+  SYSTEM: 'SYSTEM',
   USER: 'USER',
   ASSISTANT: 'ASSISTANT'
 } as const
 
 export type MessageRole = (typeof MessageRole)[keyof typeof MessageRole]
+
+
+export const GenerationStatus = {
+  STREAMING: 'STREAMING',
+  COMPLETED: 'COMPLETED',
+  STOPPED: 'STOPPED',
+  ERROR: 'ERROR'
+} as const
+
+export type GenerationStatus = (typeof GenerationStatus)[keyof typeof GenerationStatus]

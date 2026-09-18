@@ -1,21 +1,6 @@
-export type StreamRequest =
-    | {
-          mode: "new";
-          content: string;
-      }
-    | {
-          mode: "retry";
-          userMessageId: string;
-      }
-    | {
-          mode: "regenerate";
-          userMessageId: string;
-      };
-
 export type StreamCallbacks = {
     onUserMessage?: (data: {
         id: string;
-        mode: "new" | "retry" | "regenerate";
     }) => void;
 
     onGenerationStarted?: (data: {
@@ -42,28 +27,27 @@ export type StreamCallbacks = {
 };
 
 export async function streamChatMessage(
-    conversationId: string,
-    requestBody: StreamRequest,
+    endpoint: string,
+    body: unknown,
     callbacks: StreamCallbacks,
     signal?: AbortSignal
 ) {
-    const response = await fetch(
-        `/api/conversations/${conversationId}/messages`,
-        {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify(requestBody),
-            signal,
-        }
-    );
+    const response = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: body === undefined
+            ? undefined
+            : JSON.stringify(body),
+        signal,
+    });
 
     if (!response.ok) {
         const text = await response.text();
 
         throw new Error(
-            text || "Failed to send message"
+            text || "Failed to generate response"
         );
     }
 
@@ -77,7 +61,8 @@ export async function streamChatMessage(
     let buffer = "";
 
     while (true) {
-        const { value, done } = await reader.read();
+        const { value, done } =
+            await reader.read();
 
         if (done) {
             break;
@@ -96,7 +81,7 @@ export async function streamChatMessage(
                 continue;
             }
 
-            let eventName = "message";
+            let eventName = "";
             let eventData = "";
 
             for (const line of eventText.split("\n")) {
@@ -117,7 +102,7 @@ export async function streamChatMessage(
                 continue;
             }
 
-            let data: any;
+            let data: unknown;
 
             try {
                 data = JSON.parse(eventData);
@@ -127,28 +112,56 @@ export async function streamChatMessage(
 
             switch (eventName) {
                 case "user_message":
-                    callbacks.onUserMessage?.(data);
+                    callbacks.onUserMessage?.(
+                        data as {
+                            id: string;
+                        }
+                    );
                     break;
 
                 case "generation_started":
                     callbacks.onGenerationStarted?.(
-                        data
+                        data as {
+                            id: string;
+                        }
                     );
                     break;
 
                 case "chunk":
                     callbacks.onChunk?.(
-                        data.content ?? ""
+                        (
+                            data as {
+                                content?: string;
+                            }
+                        ).content ?? ""
                     );
                     break;
 
                 case "done":
-                    callbacks.onDone?.(data);
+                    callbacks.onDone?.(
+                        data as {
+                            generation: {
+                                id: string;
+                                status: "COMPLETED";
+                            };
+                            message: {
+                                id: string;
+                                role: "ASSISTANT";
+                                content: string;
+                                createdAt: string;
+                                updatedAt: string;
+                            };
+                        }
+                    );
                     break;
 
                 case "error":
                     callbacks.onError?.(
-                        data.message ??
+                        (
+                            data as {
+                                message?: string;
+                            }
+                        ).message ??
                             "Unknown error"
                     );
                     break;

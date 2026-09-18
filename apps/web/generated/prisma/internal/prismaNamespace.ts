@@ -400,7 +400,8 @@ export const ModelName = {
   User: 'User',
   Session: 'Session',
   Conversation: 'Conversation',
-  Message: 'Message'
+  Message: 'Message',
+  Generation: 'Generation'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -416,7 +417,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "session" | "conversation" | "message"
+    modelProps: "user" | "session" | "conversation" | "message" | "generation"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -716,6 +717,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    Generation: {
+      payload: Prisma.$GenerationPayload<ExtArgs>
+      fields: Prisma.GenerationFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.GenerationFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GenerationPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.GenerationFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GenerationPayload>
+        }
+        findFirst: {
+          args: Prisma.GenerationFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GenerationPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.GenerationFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GenerationPayload>
+        }
+        findMany: {
+          args: Prisma.GenerationFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GenerationPayload>[]
+        }
+        create: {
+          args: Prisma.GenerationCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GenerationPayload>
+        }
+        createMany: {
+          args: Prisma.GenerationCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.GenerationCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GenerationPayload>[]
+        }
+        delete: {
+          args: Prisma.GenerationDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GenerationPayload>
+        }
+        update: {
+          args: Prisma.GenerationUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GenerationPayload>
+        }
+        deleteMany: {
+          args: Prisma.GenerationDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.GenerationUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.GenerationUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GenerationPayload>[]
+        }
+        upsert: {
+          args: Prisma.GenerationUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GenerationPayload>
+        }
+        aggregate: {
+          args: Prisma.GenerationAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateGeneration>
+        }
+        groupBy: {
+          args: Prisma.GenerationGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.GenerationGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.GenerationCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.GenerationCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -801,6 +876,18 @@ export const MessageScalarFieldEnum = {
 export type MessageScalarFieldEnum = (typeof MessageScalarFieldEnum)[keyof typeof MessageScalarFieldEnum]
 
 
+export const GenerationScalarFieldEnum = {
+  id: 'id',
+  userMessageId: 'userMessageId',
+  assistantMessageId: 'assistantMessageId',
+  status: 'status',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type GenerationScalarFieldEnum = (typeof GenerationScalarFieldEnum)[keyof typeof GenerationScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -870,6 +957,20 @@ export type EnumMessageRoleFieldRefInput<$PrismaModel> = FieldRefInputType<$Pris
  * Reference to a field of type 'MessageRole[]'
  */
 export type ListEnumMessageRoleFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'MessageRole[]'>
+    
+
+
+/**
+ * Reference to a field of type 'GenerationStatus'
+ */
+export type EnumGenerationStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'GenerationStatus'>
+    
+
+
+/**
+ * Reference to a field of type 'GenerationStatus[]'
+ */
+export type ListEnumGenerationStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'GenerationStatus[]'>
     
 
 
@@ -1041,6 +1142,7 @@ export type GlobalOmitConfig = {
   session?: Prisma.SessionOmit
   conversation?: Prisma.ConversationOmit
   message?: Prisma.MessageOmit
+  generation?: Prisma.GenerationOmit
 }
 
 /* Types for Logging */

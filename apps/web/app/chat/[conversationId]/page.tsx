@@ -145,90 +145,94 @@ export default function ChatPage() {
         ]);
 
         try {
-            await streamChatMessage(
-                conversationId,
-                {
-                    mode: "new",
-                    content,
-                },
-                {
-                    onUserMessage(data) {
-                        const id = data.id;
-
-                        setMessages((current) =>
-                            current.map((message) =>
-                                message.id === temporaryUserId
-                                    ? {
-                                        ...message,
-                                        id,
-                                    }
-                                    : message
-                            )
-                        );
-                    },
-
-                    onChunk(text) {
-                        setMessages((current) =>
-                            current.map((message) =>
-                                message.id ===
-                                    temporaryAssistantId
-                                    ? {
-                                        ...message,
-                                        content:
-                                            message.content +
-                                            text,
-                                        status: "streaming",
-                                    }
-                                    : message
-                            )
-                        );
-                    },
-
-                    onDone() {
-                        abortControllerRef.current = null;
-
-                        setIsStreaming(false);
-
-                        setMessages((current) =>
-                            current.map((message) =>
-                                message.id ===
-                                    temporaryAssistantId
-                                    ? {
-                                        ...message,
-                                        status: "complete",
-                                    }
-                                    : message
-                            )
-                        );
-
-                        window.dispatchEvent(
-                            new Event(
-                                "conversations-updated"
-                            )
-                        );
-                    },
-
-                    onError(message) {
-                        abortControllerRef.current = null;
-
-                        setIsStreaming(false);
-                        setError(message);
-
-                        setMessages((current) =>
-                            current.map((chatMessage) =>
-                                chatMessage.id ===
-                                    temporaryAssistantId
-                                    ? {
-                                        ...chatMessage,
-                                        status: "error",
-                                    }
-                                    : chatMessage
-                            )
-                        );
-                    },
-                },
-                controller.signal
+         await streamChatMessage(
+    `/api/conversations/${conversationId}/messages`,
+    {
+        content,
+    },
+    {
+        onUserMessage({ id }) {
+            setMessages((current) =>
+                current.map((message) =>
+                    message.id === temporaryUserId
+                        ? {
+                              ...message,
+                              id,
+                          }
+                        : message
+                )
             );
+        },
+
+        onGenerationStarted({ id }) {
+            console.log(
+                "Generation started:",
+                id
+            );
+        },
+
+        onChunk(text) {
+            setMessages((current) =>
+                current.map((message) =>
+                    message.id ===
+                    temporaryAssistantId
+                        ? {
+                              ...message,
+                              content:
+                                  message.content +
+                                  text,
+                              status: "streaming",
+                          }
+                        : message
+                )
+            );
+        },
+
+        onDone() {
+            abortControllerRef.current = null;
+
+            setIsStreaming(false);
+
+            setMessages((current) =>
+                current.map((message) =>
+                    message.id ===
+                    temporaryAssistantId
+                        ? {
+                              ...message,
+                              status: "complete",
+                          }
+                        : message
+                )
+            );
+
+            window.dispatchEvent(
+                new Event(
+                    "conversations-updated"
+                )
+            );
+        },
+
+        onError(message) {
+            abortControllerRef.current = null;
+
+            setIsStreaming(false);
+            setError(message);
+
+            setMessages((current) =>
+                current.map((message) =>
+                    message.id ===
+                    temporaryAssistantId
+                        ? {
+                              ...message,
+                              status: "error",
+                          }
+                        : message
+                )
+            );
+        },
+    },
+    controller.signal
+);
         } catch (error) {
             abortControllerRef.current = null;
             setIsStreaming(false);
@@ -355,83 +359,86 @@ export default function ChatPage() {
         abortControllerRef.current = controller;
 
         try {
-            await streamChatMessage(
-                conversationId,
-                {
-                    mode: "retry",
-                    userMessageId,
-                },
-                {
-                    onUserMessage: (data) => {
-                        console.log(
-                            "Retrying user message:",
-                            data.id
-                        );
-                    },
-
-                    onGenerationStarted: (data) => {
-                        console.log(
-                            "Retry generation:",
-                            data.id
-                        );
-                    },
-
-                    onChunk: (content) => {
-                        setMessages((currentMessages) =>
-                            currentMessages.map((message) =>
-                                message.id === assistantId
-                                    ? {
-                                        ...message,
-                                        content:
-                                            message.content +
-                                            content,
-                                        status: "streaming",
-                                    }
-                                    : message
-                            )
-                        );
-                    },
-
-                    onDone: () => {
-                        setMessages((currentMessages) =>
-                            currentMessages.map((message) =>
-                                message.id === assistantId
-                                    ? {
-                                        ...message,
-                                        status: "complete",
-                                    }
-                                    : message
-                            )
-                        );
-
-                        setIsStreaming(false);
-
-                        window.dispatchEvent(
-                            new Event(
-                                "conversations-updated"
-                            )
-                        );
-                    },
-
-                    onError: (message) => {
-                        console.error(message);
-
-                        setMessages((currentMessages) =>
-                            currentMessages.map((item) =>
-                                item.id === assistantId
-                                    ? {
-                                        ...item,
-                                        status: "error",
-                                    }
-                                    : item
-                            )
-                        );
-
-                        setIsStreaming(false);
-                    },
-                },
-                controller.signal
+          await streamChatMessage(
+    `/api/messages/${userMessageId}/retry`,
+    undefined,
+    {
+        onUserMessage({ id }) {
+            console.log(
+                "Retrying user message:",
+                id
             );
+        },
+
+        onGenerationStarted({ id }) {
+            console.log(
+                "Retry generation:",
+                id
+            );
+        },
+
+        onChunk(content) {
+            setMessages((currentMessages) =>
+                currentMessages.map(
+                    (message) =>
+                        message.id ===
+                        assistantId
+                            ? {
+                                  ...message,
+                                  content:
+                                      message.content +
+                                      content,
+                                  status: "streaming",
+                              }
+                            : message
+                )
+            );
+        },
+
+        onDone() {
+            setMessages((currentMessages) =>
+                currentMessages.map(
+                    (message) =>
+                        message.id ===
+                        assistantId
+                            ? {
+                                  ...message,
+                                  status: "complete",
+                              }
+                            : message
+                )
+            );
+
+            setIsStreaming(false);
+
+            window.dispatchEvent(
+                new Event(
+                    "conversations-updated"
+                )
+            );
+        },
+
+        onError(message) {
+            console.error(message);
+
+            setMessages((currentMessages) =>
+                currentMessages.map(
+                    (message) =>
+                        message.id ===
+                        assistantId
+                            ? {
+                                  ...message,
+                                  status: "error",
+                              }
+                            : message
+                )
+            );
+
+            setIsStreaming(false);
+        },
+    },
+    controller.signal
+);
         } catch (error) {
             if (
                 error instanceof DOMException &&

@@ -14,6 +14,21 @@ type MessageStatus =
     | "stopped"
     | "error";
 
+type GenerationStatus =
+    | "STREAMING"
+    | "COMPLETED"
+    | "STOPPED"
+    | "ERROR";
+
+type Generation = {
+    id: string;
+    userMessageId: string;
+    status: GenerationStatus;
+    createdAt: string;
+    updatedAt: string;
+    assistantMessageId?: string | null;
+};
+
 type Message = {
     id: string;
     role: MessageRole;
@@ -21,6 +36,16 @@ type Message = {
     createdAt: string;
     updatedAt: string;
     status: MessageStatus;
+
+    generation?: Generation | null;
+
+    generationsFromUser?: Array<{
+        id: string;
+        status: GenerationStatus;
+        createdAt: string;
+        updatedAt: string;
+        assistantMessageId: string | null;
+    }>;
 };
 
 type ChatMessagesProps = {

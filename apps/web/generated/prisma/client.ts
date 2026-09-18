@@ -61,3 +61,8 @@ export type Conversation = Prisma.ConversationModel
  * 
  */
 export type Message = Prisma.MessageModel
+/**
+ * Model Generation
+ * 
+ */
+export type Generation = Prisma.GenerationModel
